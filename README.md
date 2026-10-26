@@ -15,6 +15,8 @@ The demo brand, copy, listings, testimonials, and addresses are fictional. All p
 - Residences carousel showing a partial fourth card as a horizontal-scroll cue
 - Compact floating modals on phones, with inset cards and internal scrolling
 - Native page and modal scrollbars hidden while preserving keyboard, wheel, and touch scrolling
+- Hidden, password-protected visitor analytics with anonymous page, source, location, and device data
+- Excel-compatible CSV export from the private analytics dashboard
 - Responsive one-page portfolio for a fictional property and interiors company
 - Hero, featured amenities, filterable property carousel, first-timer guide accordion, testimonial slider, statistics, journal grid, services, and footer
 - Property detail modals, an article reader, and an enquiry form with validation and success states
@@ -88,6 +90,29 @@ The insert policy allows anonymous submissions but provides no anonymous read ac
 
 Without environment variables, submissions are stored locally under `hearth-and-form:inquiries` so the demo can still be reviewed end to end. The confirmation screen notes this demo state.
 
+### Private visitor analytics
+
+The site includes a hidden visitor log for the owner. It is not linked anywhere on the public website.
+
+- URL: `https://hearth-and-form-eight.vercel.app/#/studio/visits`
+- Access is protected by the `ANALYTICS_ADMIN_KEY` secret configured in Vercel.
+- Visits are stored in a **private Vercel Blob store**, not in the public site bundle.
+- The public site posts one anonymous page view per tab session to `/api/track`.
+- Recorded data: timestamp, page path, referral domain, approximate country/city from Vercel network headers, device type, browser, and an anonymous hashed signal used only for the unique-visitor estimate.
+- Not recorded: names, email addresses, raw IP addresses, full user agents, or cookies.
+- The latest 150 visits are available in the dashboard, with an **Excel export** button that downloads a `.csv` file readable by Excel.
+- Bots are filtered out, and the analytics page and API are marked `noindex`.
+
+Required Vercel environment variables:
+
+| Variable | Purpose |
+| --- | --- |
+| `BLOB_READ_WRITE_TOKEN` | Injected automatically by the connected Vercel Blob store |
+| `ANALYTICS_ADMIN_KEY` | Secret key used to unlock the visitor log and call the private API |
+| `VISIT_HASH_SALT` | Server-side salt used to create anonymous visitor hashes |
+
+The actual values are never committed to this repository. Visit data is private to the Vercel project owner.
+
 ### Replace seed media
 
 Seed rows use paths such as `/images/home-alder.webp`. You can either keep the bundled photos or upload your own to Supabase Storage and update `image_url` for each property. `image_url` accepts any absolute URL as well.
@@ -96,11 +121,15 @@ Seed rows use paths such as `/images/home-alder.webp`. You can either keep the b
 
 ```text
 BusinessPortfolio/
+├─ api/
+│  ├─ track.ts                 # anonymous page-view recorder
+│  └─ visits.ts                # password-protected visit feed
 ├─ public/
 │  ├─ favicon.svg
 │  └─ images/                 # downloaded photography
 ├─ src/
 │  ├─ components/
+│  │  ├─ AdminVisits.tsx
 │  │  ├─ ArticleModal.tsx
 │  │  ├─ BrandMark.tsx
 │  │  ├─ FeatureStrip.tsx
@@ -115,20 +144,24 @@ BusinessPortfolio/
 │  │  ├─ PropertyCard.tsx
 │  │  ├─ PropertyModal.tsx
 │  │  ├─ Reveal.tsx
+│  │  ├─ ScrollProgress.tsx
 │  │  ├─ Services.tsx
 │  │  ├─ Stats.tsx
 │  │  └─ Testimonials.tsx
 │  ├─ hooks/
-│  │  └─ useProperties.ts
+│  │  ├─ useProperties.ts
+│  │  └─ useVisitTracker.ts
 │  ├─ lib/
 │  │  ├─ data.ts
 │  │  ├─ format.ts
 │  │  ├─ inquiries.ts
 │  │  └─ supabase.ts
 │  ├─ App.tsx
+│  ├─ admin.css
 │  ├─ main.tsx
 │  └─ styles.css
 ├─ supabase/schema.sql
+├─ tsconfig.api.json
 ├─ .env.example
 ├─ CREDITS.md
 └─ README.md
@@ -152,10 +185,11 @@ Before going live, replace the fictional content and set absolute production URL
 ## Scripts
 
 ```bash
-npm run dev      # start Vite
-npm run build    # type-check and build
-npm run preview  # preview the build
-npm run lint     # oxlint
+npm run dev          # start Vite
+npm run build        # type-check app + API, then build
+npm run preview      # preview the build
+npm run lint         # oxlint
+npm run typecheck:api # type-check the Vercel functions
 ```
 
 ## Demo notice

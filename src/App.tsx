@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Header } from './components/Header'
 import { ScrollProgress } from './components/ScrollProgress'
 import { Hero } from './components/Hero'
@@ -13,7 +13,11 @@ import { Footer } from './components/Footer'
 import { PropertyModal } from './components/PropertyModal'
 import { InquiryModal } from './components/InquiryModal'
 import { ArticleModal } from './components/ArticleModal'
+import { AdminVisits } from './components/AdminVisits'
+import { useVisitTracker } from './hooks/useVisitTracker'
 import type { JournalEntry, Property } from './lib/data'
+
+const ADMIN_HASH = '#/studio/visits'
 
 interface InquiryState {
   property?: Property
@@ -24,6 +28,16 @@ export default function App() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [inquiryState, setInquiryState] = useState<InquiryState | null>(null)
   const [activeArticle, setActiveArticle] = useState<JournalEntry | null>(null)
+  const [currentHash, setCurrentHash] = useState(() => window.location.hash)
+  const isAdminRoute = currentHash === ADMIN_HASH
+
+  useVisitTracker(!isAdminRoute)
+
+  useEffect(() => {
+    const handleHashChange = () => setCurrentHash(window.location.hash)
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
 
   const openInquiry = useCallback((property?: Property | null, interest?: string) => {
     setSelectedProperty(null)
@@ -33,6 +47,10 @@ export default function App() {
   const openProperty = useCallback((property: Property) => {
     setSelectedProperty(property)
   }, [])
+
+  if (isAdminRoute) {
+    return <AdminVisits />
+  }
 
   return (
     <>
