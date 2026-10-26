@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 const TRACKED_KEY = 'hearth-and-form:visit-tracked'
 
 /**
- * Records one anonymous page view per browser session in production.
+ * Records one privacy-preserving page view per browser session in production.
  * No cookies, raw IP addresses, names, or email addresses are collected on the client.
  */
 export function useVisitTracker(enabled: boolean) {

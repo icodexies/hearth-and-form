@@ -101,9 +101,11 @@ The site includes a hidden dashboard for the owner. It is not linked anywhere on
 - Access is protected by the `ANALYTICS_ADMIN_KEY` secret configured in Vercel.
 - Two tabs: **Visitors** and **Inquiries**.
 - Data is stored in a **private Vercel Blob store**, not in the public site bundle.
-- Visitors are anonymous: timestamp, path, referral domain, approximate country/city, device, browser, and an anonymous visitor hash for the unique estimate.
-- Inquiries include the contact details the visitor chose to submit: name, email, optional phone, message, interest, property reference, source, approximate location, device, and browser.
+- Visitors are pseudonymous: timestamp, path, referral domain, approximate country/city, device, browser, and a short **Visitor ID** (for example `HF-4F9A2C`) derived from a server-side hash of network and browser details. Repeated visits from the same browser and network share the same ID, and the table marks returning visitors.
+- Actual visitor names and emails are **not** known from browsing alone. They appear only when someone submits the inquiry form.
+- Inquiries include the contact details the visitor chose to submit: name, email, optional phone, message, interest, property reference, source, approximate location, device, browser, and the same Visitor ID where available.
 - The latest 150 entries per tab are shown, with an **Excel export** button for the active tab. Each export downloads a `.csv` file readable by Excel.
+- The Visitors table shows the short Visitor ID and a "Returning" count, and the same ID is included in the CSV export. The Inquiries table also shows the Visitor ID so an inquiry can be matched to earlier visits.
 - Bots are filtered from the visitor log, and the dashboard/API are marked `noindex`.
 
 Required Vercel environment variables:
@@ -112,7 +114,7 @@ Required Vercel environment variables:
 | --- | --- |
 | `BLOB_READ_WRITE_TOKEN` | Injected automatically by the connected Vercel Blob store |
 | `ANALYTICS_ADMIN_KEY` | Secret key used to unlock the dashboard and call the private APIs |
-| `VISIT_HASH_SALT` | Server-side salt used to create anonymous visitor hashes |
+| `VISIT_HASH_SALT` | Server-side salt used to create the short pseudonymous Visitor IDs |
 
 The actual values are never committed to this repository. Visit and inquiry data is private to the Vercel project owner.
 
@@ -125,7 +127,7 @@ Seed rows use paths such as `/images/home-alder.webp`. You can either keep the b
 ```text
 BusinessPortfolio/
 ├─ api/
-│  ├─ track.ts                 # anonymous page-view recorder
+│  ├─ track.ts                 # privacy-preserving page-view recorder
 │  ├─ inquiries.ts             # public inquiry intake + private feed
 │  └─ visits.ts                # password-protected visit feed
 ├─ public/

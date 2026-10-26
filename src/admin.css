@@ -283,7 +283,8 @@
 
 .admin-action-button--primary:hover:not(:disabled) {
   border-color: var(--clay);
-  background: var(--clay);
+  background: var(--ink);
+  color: var(--cream);
 }
 
 .admin-action-button:disabled {
@@ -426,8 +427,36 @@
   text-align: left;
 }
 
+.admin-table--visits {
+  min-width: 900px;
+}
+
 .admin-table--inquiries {
-  min-width: 1080px;
+  min-width: 1180px;
+}
+
+.admin-visitor-id {
+  display: inline-block;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.admin-returning {
+  display: block;
+  margin-top: 4px;
+  color: var(--clay);
+  font-size: 8px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .admin-name {

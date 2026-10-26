@@ -32,6 +32,7 @@ interface Visit {
   city: string
   device: string
   browser: string
+  visitorId: string
 }
 
 interface VisitSummary {
@@ -62,6 +63,7 @@ interface Inquiry {
   city: string
   device: string
   browser: string
+  visitorId?: string
   consent: boolean
 }
 
@@ -175,9 +177,10 @@ function downloadCsvFile(filename: string, header: string[], rows: string[][]) {
 function downloadVisitsCsv(visits: Visit[]) {
   downloadCsvFile(
     'hearth-and-form-visits',
-    ['Date and time', 'Page', 'Country', 'City', 'Device', 'Browser', 'Source'],
+    ['Date and time', 'Visitor ID', 'Page', 'Country', 'City', 'Device', 'Browser', 'Source'],
     visits.map((visit) => [
       formatExportTime(visit.createdAt),
+      visit.visitorId || 'Unknown',
       visit.path,
       countryLabel(visit.country),
       visit.city,
@@ -193,6 +196,7 @@ function downloadInquiriesCsv(inquiries: Inquiry[]) {
     'hearth-and-form-inquiries',
     [
       'Date and time',
+      'Visitor ID',
       'Name',
       'Email',
       'Phone',
@@ -208,6 +212,7 @@ function downloadInquiriesCsv(inquiries: Inquiry[]) {
     ],
     inquiries.map((inquiry) => [
       formatExportTime(inquiry.createdAt),
+      inquiry.visitorId || 'Unknown',
       inquiry.name,
       inquiry.email,
       inquiry.phone,
@@ -441,6 +446,15 @@ export function AdminVisits() {
       .slice(0, 5)
   }, [visits])
 
+  const visitorVisitCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    visits.forEach((visit) => {
+      if (!visit.visitorId) return
+      counts.set(visit.visitorId, (counts.get(visit.visitorId) ?? 0) + 1)
+    })
+    return counts
+  }, [visits])
+
   const showingVisitors = activeTab === 'visitors'
   const isRefreshing = showingVisitors ? status === 'loading' : inquiriesStatus === 'loading'
   const exportDisabled = showingVisitors ? !visits.length : !inquiries.length
@@ -584,8 +598,9 @@ export function AdminVisits() {
 
               <p className="admin-privacy-note">
                 <ShieldCheck size={14} strokeWidth={1.7} aria-hidden="true" />
-                Visitor analytics are anonymous. Inquiries contain only the contact details a
-                visitor chose to send. Everything stays behind your private access key.
+                Visits use a short pseudonymous visitor ID so repeat visits can be recognised.
+                Names and emails appear only when a visitor chooses to send an inquiry.
+                Everything stays behind your private access key.
               </p>
             </section>
           ) : (
@@ -599,7 +614,7 @@ export function AdminVisits() {
                   <h1>{showingVisitors ? 'Visitor activity.' : 'Inquiry activity.'}</h1>
                   <p className="admin-dashboard-copy">
                     {showingVisitors
-                      ? 'Anonymous visits to the public website. Updated every time you refresh.'
+                      ? 'Visitor IDs group repeat visits from the same browser and network.'
                       : 'People who submitted the private viewing or enquiry form.'}
                   </p>
                 </div>
@@ -679,7 +694,7 @@ export function AdminVisits() {
                           Unique visitors
                         </span>
                         <strong>{summary.uniqueVisitors}</strong>
-                        <p>Approximate, based on anonymous device signals</p>
+                        <p>Grouped by the same short visitor ID</p>
                       </div>
                       <div className="admin-kpi">
                         <span>
@@ -729,10 +744,11 @@ export function AdminVisits() {
                       <p className="admin-empty">Loading visitor activity…</p>
                     ) : visits.length ? (
                       <div className="admin-table-wrap">
-                        <table className="admin-table">
+                        <table className="admin-table admin-table--visits">
                           <thead>
                             <tr>
                               <th scope="col">When</th>
+                              <th scope="col">Visitor</th>
                               <th scope="col">Page</th>
                               <th scope="col">Location</th>
                               <th scope="col">Device</th>
@@ -740,24 +756,40 @@ export function AdminVisits() {
                             </tr>
                           </thead>
                           <tbody>
-                            {visits.map((visit, index) => (
-                              <tr key={`${visit.createdAt}-${visit.path}-${index}`}>
-                                <td>
-                                  <time dateTime={visit.createdAt}>
-                                    {formatVisitTime(visit.createdAt)}
-                                  </time>
-                                </td>
-                                <td>
-                                  <span className="admin-path">{visit.path}</span>
-                                </td>
-                                <td>{locationLabel(visit)}</td>
-                                <td>
-                                  {visit.device}
-                                  <span className="admin-cell-sub">{visit.browser}</span>
-                                </td>
-                                <td>{visit.source}</td>
-                              </tr>
-                            ))}
+                            {visits.map((visit, index) => {
+                              const repeatCount = visitorVisitCounts.get(visit.visitorId) ?? 0
+                              return (
+                                <tr key={`${visit.createdAt}-${visit.path}-${index}`}>
+                                  <td>
+                                    <time dateTime={visit.createdAt}>
+                                      {formatVisitTime(visit.createdAt)}
+                                    </time>
+                                  </td>
+                                  <td>
+                                    <span
+                                      className="admin-visitor-id"
+                                      title="Approximate ID based on a server-side hash of network and browser details"
+                                    >
+                                      {visit.visitorId || 'Unknown'}
+                                    </span>
+                                    {repeatCount > 1 ? (
+                                      <span className="admin-returning">
+                                        Returning · {repeatCount} visits
+                                      </span>
+                                    ) : null}
+                                  </td>
+                                  <td>
+                                    <span className="admin-path">{visit.path}</span>
+                                  </td>
+                                  <td>{locationLabel(visit)}</td>
+                                  <td>
+                                    {visit.device}
+                                    <span className="admin-cell-sub">{visit.browser}</span>
+                                  </td>
+                                  <td>{visit.source}</td>
+                                </tr>
+                              )
+                            })}
                           </tbody>
                         </table>
                       </div>
@@ -777,8 +809,10 @@ export function AdminVisits() {
 
                   <p className="admin-dashboard-note">
                     <ShieldCheck size={14} strokeWidth={1.7} aria-hidden="true" />
-                    Private analytics. Visits are anonymous: no names, emails, raw IP addresses,
-                    or cookies are stored. Approximate location comes from network headers.
+                    Visits are pseudonymous. The short Visitor ID comes from a server-side hash
+                    of network and browser details, so repeat visits can be recognised. Names and
+                    emails appear only when a visitor chooses to send an inquiry. No raw IP
+                    addresses or cookies are stored.
                   </p>
                 </>
               ) : (
@@ -849,6 +883,7 @@ export function AdminVisits() {
                             <tr>
                               <th scope="col">When</th>
                               <th scope="col">Person</th>
+                              <th scope="col">Visitor</th>
                               <th scope="col">Interest</th>
                               <th scope="col">Message</th>
                               <th scope="col">Property</th>
@@ -876,6 +911,13 @@ export function AdminVisits() {
                                     {sourceLabel(inquiry.source)} · {inquiry.device} ·{' '}
                                     {inquiry.browser}
                                   </span>
+                                </td>
+                                <td>
+                                  {inquiry.visitorId ? (
+                                    <span className="admin-visitor-id">{inquiry.visitorId}</span>
+                                  ) : (
+                                    <span className="admin-cell-sub">Unavailable</span>
+                                  )}
                                 </td>
                                 <td>{inquiry.interest}</td>
                                 <td>
@@ -918,8 +960,9 @@ export function AdminVisits() {
 
                   <p className="admin-dashboard-note">
                     <ShieldCheck size={14} strokeWidth={1.7} aria-hidden="true" />
-                    Inquiries contain only the contact details visitors chose to submit. Keep
-                    this dashboard and its access key private.
+                    Inquiries contain only the contact details visitors chose to submit. Match a
+                    Visitor ID here with the Visitors tab to see that person's earlier activity.
+                    Keep this dashboard and its access key private.
                   </p>
                 </>
               )}

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { get, list, put } from '@vercel/blob'
-import { randomUUID, timingSafeEqual } from 'node:crypto'
+import { createHash, randomUUID, timingSafeEqual } from 'node:crypto'
 
 const BOT_PATTERN = /bot|crawler|spider|headless|preview|monitor|uptime|pingdom|pagespeed/i
 const MAX_INQUIRIES = 150
@@ -21,6 +21,7 @@ interface StoredInquiry {
   city: string
   device: string
   browser: string
+  visitorId: string
   consent: boolean
 }
 
@@ -160,6 +161,13 @@ async function storeInquiry(req: VercelRequest, res: VercelResponse) {
 
   const country = decodeHeader(headerValue(req.headers['x-vercel-ip-country']))
   const city = decodeHeader(headerValue(req.headers['x-vercel-ip-city']))
+  const ip = headerValue(req.headers['x-forwarded-for']).split(',')[0]?.trim() ?? ''
+  const salt = process.env.VISIT_HASH_SALT ?? ''
+  const visitorHash = createHash('sha256')
+    .update(`${salt}|${ip}|${userAgent}`)
+    .digest('hex')
+    .slice(0, 24)
+  const visitorId = `HF-${visitorHash.slice(0, 6).toUpperCase()}`
 
   const inquiry: StoredInquiry = {
     createdAt: new Date().toISOString(),
@@ -174,6 +182,7 @@ async function storeInquiry(req: VercelRequest, res: VercelResponse) {
     city: cleanText(city, 80),
     device: getDevice(userAgent),
     browser: getBrowser(userAgent),
+    visitorId,
     consent,
   }
 

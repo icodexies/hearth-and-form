@@ -16,7 +16,12 @@ interface StoredVisit {
   visitorHash: string
 }
 
-type PublicVisit = Omit<StoredVisit, 'visitorHash'>
+type PublicVisit = Omit<StoredVisit, 'visitorHash'> & { visitorId: string }
+
+function visitorLabel(visitorHash: string): string {
+  const compact = (visitorHash ?? '').replace(/[^a-f0-9]/gi, '').slice(0, 6).toUpperCase()
+  return compact ? `HF-${compact}` : 'Unknown'
+}
 
 function getBearerToken(req: VercelRequest): string {
   const authorization = req.headers.authorization
@@ -111,6 +116,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       city: visit.city,
       device: visit.device,
       browser: visit.browser,
+      visitorId: visitorLabel(visit.visitorHash),
     }))
 
     const uniqueVisitors = new Set(storedVisits.map((visit) => visit.visitorHash)).size
