@@ -192,6 +192,65 @@
   padding-bottom: 3px;
 }
 
+.admin-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 25px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line-soft);
+  scrollbar-width: none;
+}
+
+.admin-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  margin-bottom: -1px;
+  padding: 10px 12px;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  transition:
+    color 200ms ease,
+    border-color 200ms ease;
+}
+
+.admin-tab:hover {
+  color: var(--ink);
+}
+
+.admin-tab.is-active {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+}
+
+.admin-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 8px;
+  letter-spacing: 0;
+}
+
+.admin-tab.is-active .admin-tab-count {
+  background: var(--ink);
+  color: var(--cream);
+}
+
 .admin-action-button {
   display: inline-flex;
   align-items: center;
@@ -367,6 +426,47 @@
   text-align: left;
 }
 
+.admin-table--inquiries {
+  min-width: 1080px;
+}
+
+.admin-name {
+  display: block;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.admin-email {
+  display: inline-block;
+  max-width: 210px;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid transparent;
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1.4;
+  transition:
+    color 200ms ease,
+    border-color 200ms ease;
+}
+
+.admin-email:hover {
+  border-color: var(--clay);
+  color: var(--clay);
+}
+
+.admin-message {
+  display: block;
+  max-width: 250px;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
 .admin-table th {
   padding: 11px 22px;
   border-bottom: 1px solid var(--line-soft);
@@ -483,6 +583,15 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 20px;
+  }
+
+  .admin-tabs {
+    margin-bottom: 20px;
+  }
+
+  .admin-tab {
+    padding: 9px 10px;
+    font-size: 8.5px;
   }
 
   .admin-actions {

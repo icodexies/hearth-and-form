@@ -8,6 +8,7 @@ export interface InquiryPayload {
   message?: string
   propertySlug?: string | null
   source?: string
+  consent?: boolean
 }
 
 interface DemoInquiry extends InquiryPayload {
@@ -31,31 +32,51 @@ function saveDemoInquiry(payload: InquiryPayload) {
   }
 }
 
+async function saveToPrivateInbox(payload: InquiryPayload): Promise<boolean> {
+  if (payload.source === 'newsletter') return false
+
+  try {
+    const response = await fetch('/api/inquiries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
 /**
- * Inserts a lead into Supabase when configured.
- * Without environment variables, submissions are kept in localStorage so the
- * portfolio can be reviewed end to end without a backend.
+ * In production, inquiries go to the private Vercel Blob inbox used by the
+ * hidden dashboard. Supabase remains a fallback if the private inbox is
+ * unavailable. Local development keeps a localStorage fallback.
  */
 export async function submitInquiry(payload: InquiryPayload): Promise<{ demo: boolean }> {
-  if (!supabase) {
-    saveDemoInquiry(payload)
-    await new Promise((resolve) => window.setTimeout(resolve, 650))
-    return { demo: true }
+  if (await saveToPrivateInbox(payload)) {
+    return { demo: false }
   }
 
-  const { error } = await supabase.from('inquiries').insert({
-    name: payload.name.trim(),
-    email: payload.email.trim(),
-    phone: payload.phone?.trim() || null,
-    interest: payload.interest,
-    message: payload.message?.trim() || null,
-    property_slug: payload.propertySlug || null,
-    source: payload.source ?? 'website',
-  })
+  if (supabase) {
+    const { error } = await supabase.from('inquiries').insert({
+      name: payload.name.trim(),
+      email: payload.email.trim(),
+      phone: payload.phone?.trim() || null,
+      interest: payload.interest,
+      message: payload.message?.trim() || null,
+      property_slug: payload.propertySlug || null,
+      source: payload.source ?? 'website',
+    })
 
-  if (error) {
-    throw new Error(error.message)
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return { demo: false }
   }
 
-  return { demo: false }
+  saveDemoInquiry(payload)
+  await new Promise((resolve) => window.setTimeout(resolve, 650))
+  return { demo: true }
 }

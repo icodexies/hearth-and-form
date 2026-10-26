@@ -15,8 +15,8 @@ The demo brand, copy, listings, testimonials, and addresses are fictional. All p
 - Residences carousel showing a partial fourth card as a horizontal-scroll cue
 - Compact floating modals on phones, with inset cards and internal scrolling
 - Native page and modal scrollbars hidden while preserving keyboard, wheel, and touch scrolling
-- Hidden, password-protected visitor analytics with anonymous page, source, location, and device data
-- Excel-compatible CSV export from the private analytics dashboard
+- Hidden, password-protected visitor and inquiry dashboard
+- Excel-compatible CSV export for both visitors and inquiries
 - Responsive one-page portfolio for a fictional property and interiors company
 - Hero, featured amenities, filterable property carousel, first-timer guide accordion, testimonial slider, statistics, journal grid, services, and footer
 - Property detail modals, an article reader, and an enquiry form with validation and success states
@@ -74,44 +74,47 @@ If the environment variables are present but the tables have not been created ye
 
 ### Enquiries
 
-The viewing form and newsletter form insert into `public.inquiries`:
+The public viewing/enquiry form is logged in the private owner dashboard. In production it posts to `/api/inquiries`, which writes the entry to the private Vercel Blob store. If that private inbox is unavailable, the form falls back to Supabase when configured, then to localStorage in local demo mode.
 
-| Column | Notes |
+The newsletter form continues to use Supabase when configured, or localStorage in demo mode.
+
+The private inbox records:
+
+| Field | Notes |
 | --- | --- |
 | `name` | Required, 2–120 characters |
 | `email` | Required, validated |
 | `phone` | Optional |
-| `interest` | `Buying a home`, `Selling a home`, `Interior design`, `General enquiry`, or `Newsletter` |
+| `interest` | `Buying a home`, `Selling a home`, `Interior design`, `General enquiry` |
 | `message` | Optional, max 4,000 characters |
-| `property_slug` | Optional foreign key to `properties.slug` |
-| `source` | `website`, `property`, or `newsletter` |
+| `propertySlug` | Optional property reference |
+| `source` | `website` or `property` |
+| `consent` | Required before submission |
 
-The insert policy allows anonymous submissions but provides no anonymous read access. View submissions in the Supabase Table Editor or add a private dashboard with authenticated access.
+Supabase remains the fallback if you configure it. The `supabase/schema.sql` file still creates a public insert-only `inquiries` table for that fallback.
 
-Without environment variables, submissions are stored locally under `hearth-and-form:inquiries` so the demo can still be reviewed end to end. The confirmation screen notes this demo state.
+### Private analytics dashboard
 
-### Private visitor analytics
-
-The site includes a hidden visitor log for the owner. It is not linked anywhere on the public website.
+The site includes a hidden dashboard for the owner. It is not linked anywhere on the public website.
 
 - URL: `https://hearth-and-form-eight.vercel.app/#/studio/visits`
 - Access is protected by the `ANALYTICS_ADMIN_KEY` secret configured in Vercel.
-- Visits are stored in a **private Vercel Blob store**, not in the public site bundle.
-- The public site posts one anonymous page view per tab session to `/api/track`.
-- Recorded data: timestamp, page path, referral domain, approximate country/city from Vercel network headers, device type, browser, and an anonymous hashed signal used only for the unique-visitor estimate.
-- Not recorded: names, email addresses, raw IP addresses, full user agents, or cookies.
-- The latest 150 visits are available in the dashboard, with an **Excel export** button that downloads a `.csv` file readable by Excel.
-- Bots are filtered out, and the analytics page and API are marked `noindex`.
+- Two tabs: **Visitors** and **Inquiries**.
+- Data is stored in a **private Vercel Blob store**, not in the public site bundle.
+- Visitors are anonymous: timestamp, path, referral domain, approximate country/city, device, browser, and an anonymous visitor hash for the unique estimate.
+- Inquiries include the contact details the visitor chose to submit: name, email, optional phone, message, interest, property reference, source, approximate location, device, and browser.
+- The latest 150 entries per tab are shown, with an **Excel export** button for the active tab. Each export downloads a `.csv` file readable by Excel.
+- Bots are filtered from the visitor log, and the dashboard/API are marked `noindex`.
 
 Required Vercel environment variables:
 
 | Variable | Purpose |
 | --- | --- |
 | `BLOB_READ_WRITE_TOKEN` | Injected automatically by the connected Vercel Blob store |
-| `ANALYTICS_ADMIN_KEY` | Secret key used to unlock the visitor log and call the private API |
+| `ANALYTICS_ADMIN_KEY` | Secret key used to unlock the dashboard and call the private APIs |
 | `VISIT_HASH_SALT` | Server-side salt used to create anonymous visitor hashes |
 
-The actual values are never committed to this repository. Visit data is private to the Vercel project owner.
+The actual values are never committed to this repository. Visit and inquiry data is private to the Vercel project owner.
 
 ### Replace seed media
 
@@ -123,6 +126,7 @@ Seed rows use paths such as `/images/home-alder.webp`. You can either keep the b
 BusinessPortfolio/
 ├─ api/
 │  ├─ track.ts                 # anonymous page-view recorder
+│  ├─ inquiries.ts             # public inquiry intake + private feed
 │  └─ visits.ts                # password-protected visit feed
 ├─ public/
 │  ├─ favicon.svg

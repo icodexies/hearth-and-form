@@ -94,6 +94,7 @@ export function InquiryModal({ property, defaultInterest, onClose }: InquiryModa
         message: form.message,
         propertySlug: property?.slug ?? null,
         source: property ? 'property' : 'website',
+        consent: form.consent,
       })
       setWasDemo(result.demo)
       setStatus('success')
