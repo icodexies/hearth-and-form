@@ -48,14 +48,26 @@ interface VisitsResponse {
 
 type Status = 'locked' | 'loading' | 'ready' | 'error'
 
+function formatClockTime(date: Date): string {
+  const hours24 = date.getHours()
+  const hours12 = hours24 % 12 || 12
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const meridiem = hours24 >= 12 ? 'PM' : 'AM'
+
+  return `${hours12}:${minutes} ${meridiem}`
+}
+
 function formatVisitTime(value: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return 'Unknown time'
 
-  return new Intl.DateTimeFormat('en-GB', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
+  const datePart = new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
   }).format(date)
+
+  return `${datePart}, ${formatClockTime(date)}`
 }
 
 function formatExportTime(value: string): string {
@@ -63,7 +75,7 @@ function formatExportTime(value: string): string {
   if (Number.isNaN(date.getTime())) return ''
 
   const pad = (part: number) => String(part).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${formatClockTime(date)}`
 }
 
 function countryLabel(country: string): string {
